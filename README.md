@@ -7,10 +7,10 @@ You can see ContextualActorSample.scala for examples about how to use the patter
 
 ### Trying it out
 
-  sbt run
+    sbt run
   
 ### Playing arround
 
 You can setup the Idea modules for importing the project and follow the code or play arround with the sample app.
 
-  sbt gen-idea
+    sbt gen-idea
