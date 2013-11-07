@@ -1,7 +1,7 @@
 package com.ktonga.akka.contextual.actor
 
 import akka.actor._
-import akka.event.LoggingBus
+import com.ktonga.akka.contextual.logging.BusLogging
 
 trait WrappedReceive {
   this: Actor =>
@@ -98,34 +98,16 @@ object Logging {
   val template = "{}{}"
 }
 
-class BusLogging(val bus: LoggingBus, val logSource: String, val logClass: Class[_]) {
-
-  import akka.event.Logging._
-
-  def error(cause: Throwable, message: Any): Unit = bus.publish(Error(cause, logSource, logClass, message))
-  def log(level: LogLevel, message: Any): Unit = level match {
-    case ErrorLevel => bus.publish(Error(logSource, logClass, message))
-    case WarningLevel => bus.publish(Warning(logSource, logClass, message))
-    case InfoLevel => bus.publish(Info(logSource, logClass, message))
-    case DebugLevel => bus.publish(Debug(logSource, logClass, message))
-  }
-
-}
-
 trait Logging {
   this: Actor with MessageContext =>
 
   import MessageContext._
   import Logging._
-  import akka.event.{LogSource, Logging => akkaLogging}
+  import akka.event.{Logging => akkaLogging}
   import scala.compat.Platform
   import com.ktonga.akka.contextual.logging.MsgWithMDC
 
-  val log = {
-    val system = context.system
-    val (str, clazz) = LogSource.fromAnyRef(this, system)
-    new BusLogging(system.eventStream, str, clazz)
-  }
+  val log = BusLogging(context.system, this)
 
   def formatContext(ctx: Option[MsgCtx]): Fmt = Fmt("[%s] ", ctx.map(_.attr).getOrElse("empty"))
 
