@@ -29,36 +29,36 @@ object DummyProtocol {
 
 }
 
-class ActorA(val actorB: ActorRef) extends ContextualActor {
+class ActorA(val actorB: ActorRef) extends BaseActor {
 
   implicit val _: Timeout = 5.seconds
 
-  def receiveW: Receive = {
+  def receive: Receive = {
     case Tell(str) => doTell(str)
     case Ask(question) => (actorB ? Ask(s"do you know $question?")) pipeTo sender
-    case fwr: ForwardResponse => info("Thanks! " + fwr)
-    case ForwardBehavior => become(forwardBehavior, false)
+    case fwr: ForwardResponse => log.info("Thanks! {}", fwr)
+    case ForwardBehavior => context.become(forwardBehavior, false)
   }
 
   val forwardBehavior: Receive = {
     case fw: Forward => actorB !! fw
-    case fwr: ForwardResponse => info("Thanks! " + fwr)
-    case TellBehavior => unbecome()
+    case fwr: ForwardResponse => log.info("Thanks! {}", fwr)
+    case TellBehavior => context.unbecome()
   }
 
 
   def doTell(str: String) = {
-    info(s"A received: $str")
+    log.info("A received: {}", str)
     actorB !! str.length
   }
 
-//  override def unhandled(message: Any): Unit = error("Unhandled But Controlled Message: " + message)
+  override def unhandled(message: Any): Unit = log.error("Unhandled But Controlled Message: {}", message)
 }
 
-class ActorB(val actorC: ActorRef) extends ContextualActor {
+class ActorB(val actorC: ActorRef) extends BaseActor {
   import MessageContext._
 
-  def receiveW: Receive = {
+  def receive: Receive = {
     case int: Int => useInt(int)
     case Ask(question) => {
       val resp: Msg[AskResponse] = AskResponse(s"I don't know $question")
@@ -71,13 +71,13 @@ class ActorB(val actorC: ActorRef) extends ContextualActor {
   }
 
   def useInt(int: Int) = {
-    info("B received length: %d", int)
+    log.info("B received length: {}", int)
   }
 }
 
-class ActorC extends ContextualActor {
+class ActorC extends BaseActor {
 
-  def receiveW: Receive = {
+  def receive: Receive = {
     case Forward(str) => sender !! ForwardResponse(s"They forwarded me this: $str")
   }
 
@@ -109,6 +109,6 @@ object Sample extends App {
   actorA !! TellBehavior
   val resp = actorA ? Ask("what is the meaning of life")
 
-  println("************ " + Await.result(resp, Duration.Inf))
+  system.log.info(Await.result(resp, Duration.Inf).toString)
   system.shutdown()
 }

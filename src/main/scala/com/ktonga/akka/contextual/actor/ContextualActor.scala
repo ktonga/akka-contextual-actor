@@ -1,24 +1,6 @@
 package com.ktonga.akka.contextual.actor
 
 import akka.actor._
-import com.ktonga.akka.contextual.logging.BusLogging
-
-trait WrappedReceive {
-  this: Actor =>
-
-  def receiveW: Receive
-  def wrapReceive(receive: Receive): Receive
-
-  final def receive: Receive = wrapReceive(receiveW)
-
-  def become(behavior: Receive, discardOld: Boolean = true): Unit = {
-    context.become(wrapReceive(behavior), discardOld)
-  }
-
-  def unbecome(): Unit = {
-    context.unbecome()
-  }
-}
 
 object MessageContext {
 
@@ -49,74 +31,32 @@ trait Implicits {
 
 object Implicits extends Implicits
 
-trait MessageContext extends WrappedReceive {
-  this: Actor =>
+trait MessageContext {
 
   import MessageContext._
 
   implicit var msgCtx: Option[MsgCtx] = None
 
-  def wrapReceive(receive: Receive): Receive = new Receive {
-    def apply(a: Any): Unit = {
-      val (ctx, msg) = a match {
-        case wrapper: Msg[_] => (wrapper.ctx, wrapper.msg)
-        case other => (None, other)
-      }
-      msgCtx = ctx
-      receive(msg)
-      msgCtx = None
+  def doWithContext(message: Any)(f: Any => Unit): Unit = {
+    val (ctx, msg) = message match {
+      case wrapper: Msg[_] => (wrapper.ctx, wrapper.msg)
+      case other => (None, other)
     }
-    def isDefinedAt(a: Any): Boolean = a match {
-      case wrapper: Msg[_] => receive.isDefinedAt(wrapper.msg)
-      case other => receive.isDefinedAt(other)
-    }
+    msgCtx = ctx
+    f(msg)
+    msgCtx = None
   }
 
 }
 
-trait MessageLogging extends WrappedReceive {
-  this: Actor with Logging =>
+trait Logging extends DiagnosticActorLogging {
+  this: MessageContext =>
 
-  abstract override def wrapReceive(receive: Receive): Receive = {
-    super.wrapReceive(new Receive {
-      def apply(a: Any): Unit = infoWithTime("Message: %s", a) {receive(a)}
-      def isDefinedAt(a: Any): Boolean = receive.isDefinedAt(a)
-    })
-  }
-}
-
-object Logging {
-
-  import akka.event.Logging.LogLevel
-
-  case class Fmt(template: String, args: Any*) {
-    override def toString = template format (args: _*)
-  }
-
-  case class Log(level: LogLevel, cause: Option[Throwable], fmt: Fmt)
-
-  val template = "{}{}"
-}
-
-trait Logging {
-  this: Actor with MessageContext =>
-
-  import MessageContext._
-  import Logging._
-  import akka.event.{Logging => akkaLogging}
   import scala.compat.Platform
-  import com.ktonga.akka.contextual.logging.MsgWithMDC
+  import akka.event
 
-  val log = BusLogging(context.system, this)
-
-  def formatContext(ctx: Option[MsgCtx]): Fmt = Fmt("[%s] ", ctx.map(_.attr).getOrElse("empty"))
-
-  def logWithContext(logObj: Log)(implicit ctx: Option[MsgCtx]) = {
-    val mdc = ctx.map(c => Map("requestId" -> c.attr)).getOrElse(Map())
-    logObj match {
-      case Log(akkaLogging.ErrorLevel, Some(cause), fmt) => log.error(cause, MsgWithMDC(fmt, mdc))
-      case Log(level, _, fmt) => log.log(level, MsgWithMDC(fmt, mdc))
-    }
+  override def mdc(currentMessage: Any): event.Logging.MDC = {
+    msgCtx.map(c => Map("requestId" -> c.attr)).getOrElse(Map())
   }
 
   def runWithTime(f: => Unit)(g: Long => Unit) = {
@@ -129,37 +69,17 @@ trait Logging {
   def debugWithTime(template: String, args: Any*)(f: => Unit) = {
     runWithTime(f) {
       spentTime =>
-        debug(template + " - Spent Time: %sms", args :+ spentTime: _*)
+        log.debug(template + " - Spent Time: {}ms", (args :+ spentTime).toArray)
     }
   }
 
   def infoWithTime(template: String, args: Any*)(f: => Unit) = {
     runWithTime(f) {
       spentTime =>
-        info(template + " - Spent Time: %sms", args :+ spentTime: _*)
+        log.info(template + " - Spent Time: {}ms", (args :+ spentTime).toArray)
     }
-  }
-
-  def debug(template: String, args: Any*) = {
-    logWithContext(Log(akkaLogging.DebugLevel, None, Fmt(template, args: _*)))
-  }
-
-  def info(template: String, args: Any*) = {
-    logWithContext(Log(akkaLogging.InfoLevel, None, Fmt(template, args: _*)))
-  }
-
-  def warn(template: String, args: Any*) = {
-    logWithContext(Log(akkaLogging.WarningLevel, None, Fmt(template, args: _*)))
-  }
-
-  def error(template: String, args: Any*) = {
-    logWithContext(Log(akkaLogging.ErrorLevel, None, Fmt(template, args: _*)))
-  }
-
-  def error(cause: Throwable, template: String, args: Any*) = {
-    logWithContext(Log(akkaLogging.ErrorLevel, Some(cause), Fmt(template, args: _*)))
   }
 
 }
 
-trait ContextualActor extends Actor with MessageContext with Implicits with Logging with MessageLogging
+trait BaseActor extends Logging with akka.ContextualActor with Implicits
