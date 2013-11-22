@@ -24,5 +24,5 @@ libraryDependencies ++= Seq(
 
 ### Sample Application
 
-    [Try it out with the sample application](sample/README.md)
+[Try it out with the sample application](sample/README.md)
 
