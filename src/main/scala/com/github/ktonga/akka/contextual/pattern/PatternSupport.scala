@@ -14,7 +14,8 @@ trait AskSupport {
 }
 
 final class ContextualAskableActorRef(val actorRef: ActorRef) extends AnyVal {
-  def ?(msg: Msg[_])(implicit timeout: Timeout): Future[Any] = akkaAsk(actorRef, msg)
+  def ?+(msg: Msg[_])(implicit timeout: Timeout): Future[Any] = akkaAsk(actorRef, msg)
+  def askWithCtx(msg: Msg[_])(implicit timeout: Timeout): Future[Any] = akkaAsk(actorRef, msg)
 }
 
 trait PipeToSupport {
@@ -22,11 +23,12 @@ trait PipeToSupport {
 }
 
 final class ContextualPimpedFuture[T](val future: Future[T])(implicit executionContext: ExecutionContext) extends Implicits {
-  def pipeTo(recipient: ActorRef)(implicit ctx: Option[MsgCtx], sender: ActorRef = Actor.noSender): Future[T] = {
+  def |+(recipient: ActorRef)(implicit ctx: Option[MsgCtx], sender: ActorRef = Actor.noSender): Future[T] = pipeWithContext(recipient)
+  def pipeWithContext(recipient: ActorRef)(implicit ctx: Option[MsgCtx], sender: ActorRef = Actor.noSender): Future[T] = {
     future onComplete {
-      case Success(Msg(r, _)) ⇒ recipient !! r
-      case Success(r) ⇒ recipient !! r
-      case Failure(f) ⇒ recipient !! Status.Failure(f)
+      case Success(Msg(r, _)) ⇒ recipient !+ r
+      case Success(r) ⇒ recipient !+ r
+      case Failure(f) ⇒ recipient !+ Status.Failure(f)
     }
     future
   }

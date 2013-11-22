@@ -4,7 +4,7 @@ import akka.actor._
 
 object MessageContext {
 
-  case class MsgCtx(attr: String)
+  case class MsgCtx(attributes: Map[String, Any])
 
   case class Msg[M](msg: M, ctx: Option[MsgCtx] = None)
 
@@ -13,11 +13,13 @@ object MessageContext {
 final class ContextualActorRef(val ref: ActorRef) extends AnyVal {
   import MessageContext._
 
-  def tellW(msg: Msg[_], sender: ActorRef): Unit = ref.tell(msg, sender)
+  def tellWithCtx(msg: Msg[_], sender: ActorRef): Unit = ref.tell(msg, sender)
 
-  def !!(msg: Msg[_])(implicit sender: ActorRef = Actor.noSender): Unit = ref.!(msg)
+  def !+(msg: Msg[_])(implicit sender: ActorRef = Actor.noSender): Unit = ref.!(msg)
 
-  def forwardW(msg: Msg[_])(implicit context: ActorContext): Unit = ref.forward(msg)
+  def forwardWithContext(msg: Msg[_])(implicit context: ActorContext): Unit = ref.forward(msg)
+
+  def >+(msg: Msg[_])(implicit context: ActorContext): Unit = ref.forward(msg)
 }
 
 trait Implicits {
@@ -54,9 +56,20 @@ trait Logging extends DiagnosticActorLogging {
 
   import scala.compat.Platform
   import akka.event
+  import com.github.ktonga.akka.contextual.actor.MessageContext.MsgCtx
+
+  /**
+   * Hook to build the MDC map from the current message context.
+   * It returns all the context attributes by default, but can be
+   * overriden to filter out some values o add some derived values.
+   *
+   * @param ctx the current message context to extract MDC values from
+   * @return the map to be used as MDC values
+   */
+  def ctx2mdc(ctx: MsgCtx): akka.event.Logging.MDC = ctx.attributes
 
   override def mdc(currentMessage: Any): event.Logging.MDC = {
-    msgCtx.map(c => Map("requestId" -> c.attr)).getOrElse(Map())
+    msgCtx.map(ctx2mdc).getOrElse(Map())
   }
 
   def runWithTime(f: => Unit)(g: Long => Unit) = {
@@ -82,4 +95,4 @@ trait Logging extends DiagnosticActorLogging {
 
 }
 
-trait BaseActor extends Logging with akka.ContextualActor with Implicits
+trait TracingActor extends Logging with akka.ContextualActor with Implicits
