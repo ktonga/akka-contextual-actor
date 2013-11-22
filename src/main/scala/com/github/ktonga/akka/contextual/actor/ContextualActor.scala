@@ -1,4 +1,4 @@
-package com.ktonga.akka.contextual.actor
+package com.github.ktonga.akka.contextual.actor
 
 import akka.actor._
 

@@ -1,11 +1,10 @@
-package com.ktonga.akka.contextual.actor
-
 import DummyProtocol._
 import akka.actor._
 import akka.util.Timeout
 import scala.concurrent._
 import scala.concurrent.duration._
-import com.ktonga.akka.contextual.actor.pattern.{ask, pipe}
+import com.github.ktonga.akka.contextual.actor._
+import com.github.ktonga.akka.contextual.pattern.{ask, pipe}
 import ExecutionContext.Implicits.global
 
 

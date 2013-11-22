@@ -1,7 +1,7 @@
-package com.ktonga.akka.contextual.actor.pattern
+package com.github.ktonga.akka.contextual.pattern
 
-import com.ktonga.akka.contextual.actor.MessageContext._
-import com.ktonga.akka.contextual.actor.Implicits
+import com.github.ktonga.akka.contextual.actor.MessageContext._
+import com.github.ktonga.akka.contextual.actor.Implicits
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import akka.actor._
