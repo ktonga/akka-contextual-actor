@@ -1,16 +1,28 @@
-akka-contextual-actors
-======================
+akka-contextual-actor
+=====================
 
-### Where to start
+A really small library (just a few classes) which lets you trace your actors messages transparently propagating
+a common context together with your messages and adding the specified values to the MDC of the underling
+logging framework.
 
-You can see ContextualActorSample.scala for examples about how to use the pattern.
+## Usage
 
-### Trying it out
+Download the latest release and copy it into your project's lib folder (I promise to publish it in a repository soon)
+Also you will need to add the Typesafe Snapshots Repository since it depends on new stuff available in Akka 2.3-SNAPSHOT
 
-    sbt run
-  
-### Playing arround
+```scala
+resolvers += "Typesafe Snapshot Repository" at "http://repo.typesafe.com/typesafe/snapshots/"
 
-You can setup the Idea modules for importing the project and follow the code or play arround with the sample app.
+libraryDependencies ++= Seq(
+    "com.typesafe.akka" %% "akka-actor" % "2.3-SNAPSHOT",
+    "com.typesafe.akka"   %% "akka-slf4j"       % "2.3-SNAPSHOT",
+    "ch.qos.logback"      % "logback-classic"  % "1.0.13"
+)
+```
 
-    sbt gen-idea
+### Getting started
+
+### Sample Application
+
+    [Try it out with the sample application](sample/README.md)
+
