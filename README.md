@@ -14,7 +14,7 @@ Also you will need to add the Typesafe Snapshots Repository since it depends on 
 resolvers += "Typesafe Snapshot Repository" at "http://repo.typesafe.com/typesafe/snapshots/"
 
 libraryDependencies ++= Seq(
-    "com.typesafe.akka" %% "akka-actor" % "2.3-SNAPSHOT",
+    "com.typesafe.akka" %% "akka-actor" % "2.3-M2",
     "com.typesafe.akka"   %% "akka-slf4j"       % "2.3-M2",
     "ch.qos.logback"      % "logback-classic"  % "1.0.13"
 )
