@@ -13,7 +13,7 @@ Then go to the sample folder
 
     cd akka-contextual-actor/sample
 
-You can see `src/main/scala/ContextualActorSample.scalaContextualActorSample.scala` for examples about how to use the pattern.
+You can see `src/main/scala/ContextualActorSample.scala` for examples about how to use the pattern.
 
 ### Trying it out
 
